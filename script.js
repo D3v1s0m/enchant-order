@@ -73,6 +73,45 @@ function buildCalculateButton() {
 function buildFilters() {
     $("#allow_incompatible").change(allowIncompatibleChanged);
     $("#allow_many").change(allowManyChanged);
+    $('input[name="cheapness-mode"]').change(updateHash);
+    window.addEventListener("hashchange", applyHash);
+}
+
+function updateHash() {
+    const item_namespace = retrieveSelectedItem();
+    if (!item_namespace) {
+        history.replaceState(null, "", location.pathname + location.search);
+        return;
+    }
+    const parts = [item_namespace];
+    retrieveEnchantmentFoundation().forEach(([namespace, level]) => parts.push(namespace + "=" + level));
+    if (doAllowIncompatibleEnchantments()) parts.push("incompatible");
+    if (doAllowManyEnchantments()) parts.push("many");
+    if (retrieveCheapnessMode() !== "levels") parts.push("mode=" + retrieveCheapnessMode());
+    history.replaceState(null, "", "#" + parts.join("&"));
+}
+
+function applyHash() {
+    const params = new URLSearchParams(location.hash.slice(1));
+    const item_namespace = [...params.keys()].find(key => data.items.includes(key));
+    if (item_namespace) {
+        $("select#item").val(item_namespace);
+        $("#allow_incompatible").prop("checked", params.has("incompatible"));
+        $("#allow_many").prop("checked", params.has("many"));
+        $('input[name="cheapness-mode"][value="' + (params.get("mode") === "prior_work" ? "prior_work" : "levels") + '"]').prop("checked", true);
+    }
+    $("select#item").change();
+    if (!item_namespace) return;
+
+    params.forEach((level, namespace) => {
+        if (!data.enchants[namespace]) return;
+        const enchantment_name = languageJson.enchants[namespace];
+        const button = $("#enchants button").filter(function () {
+            return $(this).data("enchant") === enchantment_name && $(this).data("level") === Number(level);
+        });
+        if (button.length && !button.hasClass("on")) levelButtonClicked(button);
+    });
+    updateHash();
 }
 
 function buildItemSelection() {
@@ -248,6 +287,7 @@ function allowIncompatibleChanged() {
     if (!allow_incompatible) {
         turnOffLevelButtons();
     }
+    updateHash();
 }
 
 function allowManyChanged() {
@@ -255,6 +295,7 @@ function allowManyChanged() {
     if (!allow_many) {
         turnOffLevelButtons();
     }
+    updateHash();
 }
 
 function turnOffLevelButtons() {
@@ -272,6 +313,7 @@ function buildEnchantmentSelection() {
             $("#enchants").hide();
             $("#overrides").hide();
         }
+        updateHash();
     });
 
     $("#enchants table").on("click", "button", function() {
@@ -609,6 +651,7 @@ function levelButtonClicked(button_clicked) {
             updateLevelButtonForOnState(button_clicked);
         }
     }
+    updateHash();
 }
 
 function retrieveEnchantmentFoundation() {
@@ -833,7 +876,7 @@ function changeLanguageByJson(languageJson){
 
     document.getElementById("xp-range-note").textContent = languageJson.note;
 
-    $("select#item").change();
+    applyHash();
     $("#solution").hide();
     $("#error").hide();
 }

@@ -9,6 +9,12 @@ For items with many enchantments, this can mean trying a few million combination
 The work happens in a background thread (a WebWorker) and the best solution is explained.
 
 
+## Changes in this version
+
+The page URL now stores your setup after `#`, so a shared link opens the same item with the same enchants and options selected.
+Example: `#pickaxe&efficiency=5&unbreaking=3&incompatible&many&mode=prior_work`. A bare `#pickaxe` just selects the item.
+
+
 ## Localization
 
 You can add support for new languages by:
